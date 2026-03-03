@@ -51,7 +51,6 @@ const tasks = await page.evaluate(() => {
   rows.forEach(row => {
     const cols = row.querySelectorAll('td');
 
-    // Only rows that have 3 columns (skip the schedule table)
     if (cols.length === 3) {
       results.push({
         module: cols[0].innerText.trim(),
