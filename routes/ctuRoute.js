@@ -2,12 +2,12 @@ const express = require('express');
 const router = express.Router();
 const puppeteer = require('puppeteer');
 
-router.post('/login', async (req, res) => {
+async function getTasksFromCTU() {
   let browser;
 
   try {
     browser = await puppeteer.launch({
-      headless: true, // set to false to watch browser
+      headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
 
@@ -25,8 +25,8 @@ router.post('/login', async (req, res) => {
     await page.waitForSelector('#username', { visible: true });
     await page.waitForSelector('#password', { visible: true });
 
-    const username = String(process.env.CTU_USERNAME || '0307185248084');
-    const password = String(process.env.CTU_PASSWORD || '0307185248084');
+    const username = String(process.env.CTU_USERNAME);
+    const password = String(process.env.CTU_PASSWORD);
 
     await page.type('#username', username);
     await page.type('#password', password);
@@ -37,44 +37,93 @@ router.post('/login', async (req, res) => {
     ]);
 
     const currentUrl = page.url();
-
     if (currentUrl.includes('student-login.php')) {
       throw new Error('Login failed');
     }
 
-
     // Extract assessments
-const tasks = await page.evaluate(() => {
-  const rows = document.querySelectorAll('table.table-hover tbody tr');
-  const results = [];
+    const tasks = await page.evaluate(() => {
+      const rows = document.querySelectorAll('table.table-hover tbody tr');
+      const results = [];
 
-  rows.forEach(row => {
-    const cols = row.querySelectorAll('td');
+      rows.forEach(row => {
+        const cols = row.querySelectorAll('td');
 
-    if (cols.length === 3) {
-      results.push({
-        module: cols[0].innerText.trim(),
-        assessment: cols[1].innerText.trim(),
-        due: cols[2].innerText.trim()
+        if (cols.length === 3) {
+          results.push({
+            module: cols[0].innerText.trim(),
+            assessment: cols[1].innerText.trim(),
+            due: cols[2].innerText.trim()
+          });
+        }
       });
-    }
-  });
 
-  return results;
-});
+      return results;
+    });
 
-await browser.close();
-
-res.json({
-  success: true,
-  count: tasks.length,
-  tasks
-});
+    await browser.close();
+    return tasks;
 
   } catch (err) {
     if (browser) await browser.close();
+    throw err;
+  }
+}
+
+router.post('/login', async (req, res) => {
+  try {
+    const tasks = await getTasksFromCTU();
+
+    res.json({
+      success: true,
+      count: tasks.length,
+      tasks
+    });
+
+  } catch (err) {
     console.error(err);
     res.status(500).send('Login failed: ' + err.message);
+  }
+});
+
+router.get('/calendar.ics', async (req, res) => {
+  try {
+    const tasks = await getTasksFromCTU();
+
+    const events = tasks.map(task => {
+      const start = task.due.replace(/-/g, '');
+
+      const endDate = new Date(task.due);
+      endDate.setDate(endDate.getDate() + 1);
+      const end = endDate.toISOString().slice(0, 10).replace(/-/g, '');
+
+      const uid = `${task.assessment}-${start}@ctu-calendar`;
+
+      return `
+BEGIN:VEVENT
+UID:${uid}
+DTSTAMP:${start}T080000Z
+DTSTART;VALUE=DATE:${start}
+DTEND;VALUE=DATE:${end}
+SUMMARY:${task.assessment}
+DESCRIPTION:${task.module}
+END:VEVENT`;
+    }).join('\n');
+
+    const calendar = `
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//CTU Calendar//EN
+CALSCALE:GREGORIAN
+${events}
+END:VCALENDAR`;
+
+    res.setHeader('Content-Type', 'text/calendar');
+    res.send(calendar);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Failed to generate calendar');
   }
 });
 
