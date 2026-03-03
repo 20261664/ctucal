@@ -1,44 +1,82 @@
 const express = require('express');
 const router = express.Router();
-const cookieParser = require('cookie-parser');
+const puppeteer = require('puppeteer');
 
-router.post('/login',async (req, res) => {
-  const formData = new URLSearchParams();
-  formData.append('username', process.env.CTU_USERNAME);
-  formData.append('password', process.env.CTU_PASSWORD);
-  formData.append('cfunction', 'login');
+router.post('/login', async (req, res) => {
+  let browser;
 
-  const response = await fetch(
-    'https://ctu.campusmanager.co.za/portal/student-login.php',
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Referer': 'https://ctu.campusmanager.co.za/portal/student-login.php',
-        'Origin': 'https://ctu.campusmanager.co.za',
-        'User-Agent': 'Mozilla/5.0'
-      },
-      body: formData
+  try {
+    browser = await puppeteer.launch({
+      headless: true, // set to false to watch browser
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+
+    const page = await browser.newPage();
+
+    await page.setUserAgent(
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36'
+    );
+
+    await page.goto(
+      'https://ctu.campusmanager.co.za/portal/student-login.php',
+      { waitUntil: 'networkidle2' }
+    );
+
+    await page.waitForSelector('#username', { visible: true });
+    await page.waitForSelector('#password', { visible: true });
+
+    const username = String(process.env.CTU_USERNAME || '0307185248084');
+    const password = String(process.env.CTU_PASSWORD || '0307185248084');
+
+    await page.type('#username', username);
+    await page.type('#password', password);
+
+    await Promise.all([
+      page.click('#btnlogin'),
+      page.waitForNavigation({ waitUntil: 'networkidle2' })
+    ]);
+
+    const currentUrl = page.url();
+
+    if (currentUrl.includes('student-login.php')) {
+      throw new Error('Login failed');
     }
-  );
 
 
-  const setCookieHeader = response.headers.get('set-cookie');
+    // Extract assessments
+const tasks = await page.evaluate(() => {
+  const rows = document.querySelectorAll('table.table-hover tbody tr');
+  const results = [];
 
-  let sessionId = null;
+  rows.forEach(row => {
+    const cols = row.querySelectorAll('td');
 
-  if (setCookieHeader) {
-    const match = setCookieHeader.match(/PHPSESSID=([^;]+)/);
-    if (match) {
-      sessionId = match[1];
+    // Only rows that have 3 columns (skip the schedule table)
+    if (cols.length === 3) {
+      results.push({
+        module: cols[0].innerText.trim(),
+        assessment: cols[1].innerText.trim(),
+        due: cols[2].innerText.trim()
+      });
     }
-  }
-
-  
-
-  res.json({
-    PHPSESSID: sessionId
   });
+
+  return results;
+});
+
+await browser.close();
+
+res.json({
+  success: true,
+  count: tasks.length,
+  tasks
+});
+
+  } catch (err) {
+    if (browser) await browser.close();
+    console.error(err);
+    res.status(500).send('Login failed: ' + err.message);
+  }
 });
 
 module.exports = router;

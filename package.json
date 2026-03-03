@@ -21,7 +21,12 @@
   "dependencies": {
     "cheerio": "^1.2.0",
     "cookie-parser": "^1.4.7",
+    "dotenv": "^17.3.1",
     "express": "^5.2.1",
-    "nodemon": "^3.1.14"
+    "fetch-cookie": "^3.2.0",
+    "node-fetch": "^3.3.2",
+    "nodemon": "^3.1.14",
+    "puppeteer": "^21.11.0",
+    "tough-cookie": "^6.0.0"
   }
 }
