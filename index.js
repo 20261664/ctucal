@@ -1,8 +1,8 @@
 const express = require('express');
 const app = express();
-const PORT = 3000;
 const cookieParser = require('cookie-parser');
 const ctuRoute = require('./routes/ctuRoute');
+const PORT = process.env.PORT || 3000;
 
 require('dotenv').config();
 
