@@ -94,24 +94,9 @@ curl http://localhost:3000/calendar.ics > my_calendar.ics
 
 3. **Updating Calendar Events**: Make sure to refresh your calendar regularly to get the latest updates on events!
 
-## Installation
-Instructions on how to install and set up the tools will go here.
-
 ## Troubleshooting
 In case of any issues, feel free to check the issues section of this repository or contact the maintainers.
 
-## Project Structure
-
-```
-ctucal/
-├── index.js                 # Main Express server configuration
-├── routes/
-│   ├── ctuRoute.js         # Main route handling task fetching and calendar generation
-│   └── templateRoute.js    # Additional template routes
-├── package.json            # Project metadata and dependencies
-├── .env                    # Environment variables (create this file)
-└── .gitignore             # Git ignore rules
-```
 ## How It Works
 
 1. The application uses Puppeteer to automate a browser instance
@@ -120,46 +105,3 @@ ctucal/
 4. Extracts assessment data from the portal's task table
 5. Converts the data into iCalendar (RFC 5545) format
 6. Serves the calendar file for download
-
-## Security Notes
-
-- Your credentials are never stored or logged
-- The `.env` file containing your credentials should never be committed to git (it's already in `.gitignore`)
-- Credentials are only used to authenticate with the CTU portal
-- The browser runs in headless mode and is closed after each operation
-
-## Troubleshooting
-
-**"Login failed" error:**
-- Verify your username and password in the `.env` file
-- Ensure your CTU account is active and accessible
-- Check if the CTU portal is currently available
-
-**No tasks appearing:**
-- Ensure you have submitted assessments in your CTU portal
-- Check that the assessment table structure hasn't changed on the portal
-
-**Port 3000 already in use:**
-- Change the PORT variable in `index.js` to another port (e.g., 3001)
-
-## License
-
-This project is licensed under the ISC License - see the LICENSE file for details.
-
-## Support
-
-For issues or questions, please open an issue on the [GitHub repository](https://github.com/EthanLeRoux/ctucal/issues).
-```
-
-This comprehensive README includes:
-
-✅ **Purpose** - Clear explanation of what the project does  
-✅ **Installation Instructions** - Step-by-step setup guide including environment variables  
-✅ **Usage Instructions** - How to fetch tasks, download calendar, and import into various calendar apps  
-✅ **Project Structure** - Overview of file organization  
-✅ **Dependencies** - List of all npm packages and their purposes  
-✅ **How It Works** - Technical explanation of the automation flow  
-✅ **Security Notes** - Important information about credential handling  
-✅ **Troubleshooting** - Common issues and solutions  
-
-You can now update your README.md file with this content!
