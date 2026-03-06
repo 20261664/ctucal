@@ -1,19 +1,22 @@
 const express = require('express');
 const router = express.Router();
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
+const chromium = require('@sparticuz/chromium');
 
 async function getTasksFromCTU() {
   let browser;
 
   try {
     browser = await puppeteer.launch({
-      headless: true,
       args: [
+        ...chromium.args,
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',   // ✅ important for containers
+        '--disable-dev-shm-usage',
         '--disable-gpu'
-      ]
+      ],
+      executablePath: await chromium.executablePath(),
+      headless: true
     });
 
     const page = await browser.newPage();
@@ -30,7 +33,6 @@ async function getTasksFromCTU() {
       }
     );
 
-    // ✅ Add timeout protection so it doesn't hang forever
     await page.waitForSelector('#username', { visible: true, timeout: 15000 });
     await page.waitForSelector('#password', { visible: true, timeout: 15000 });
 
@@ -57,7 +59,6 @@ async function getTasksFromCTU() {
       throw new Error('Login failed');
     }
 
-    // ✅ Wait for table to exist before scraping
     await page.waitForSelector('table.table-hover', { timeout: 15000 });
 
     const tasks = await page.evaluate(() => {
